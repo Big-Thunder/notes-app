@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="https://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+<link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+  <h1>Home</h1>
+
+  <div th:if="${session.currentUser}">
+      <p th:text="${session.currentUser.name}"></p>
+      <a th:href="@{/note}">
+          <button>Notes</button>
+      </a>
+  </div>
+
+  <div th:unless="${session.currentUser}">
+    <a href="register">
+        <button>Register</button>
+    </a>
+
+    <a href="login">
+        <button>Login</button>
+    </a>
+  </div>
+
+  <div th:if="${message}">
+      <p th:text="${message}"></p>
+  </div>
+
+</body>
+</html>
