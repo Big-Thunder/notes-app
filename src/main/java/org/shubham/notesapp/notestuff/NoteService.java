@@ -44,6 +44,7 @@ public class NoteService {
         if(newNote.getUserId().getId() != user.getId()){
             System.out.println("Note owner mismatch stuff");
             return null;
+
         }
 
         newNote.setTitle(title);
