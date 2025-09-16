@@ -1,0 +1,135 @@
+<!-- Save as auth.html -->
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Auth (Register / Login)</title>
+</head>
+<body>
+<h1>Auth (Register / Login)</h1>
+
+<section id="register">
+    <h2>Register</h2>
+    <label>Name: <input id="reg-name" /></label><br/>
+    <label>Email: <input id="reg-email" /></label><br/>
+    <label>Password: <input id="reg-pass" type="password" /></label><br/>
+    <button id="reg-btn">Register</button>
+    <div id="reg-result"></div>
+</section>
+
+<hr/>
+
+<section id="login">
+    <h2>Login</h2>
+    <label>Email: <input id="login-email" /></label><br/>
+    <label>Password: <input id="login-pass" type="password" /></label><br/>
+    <button id="login-btn">Login</button>
+    <div id="login-result"></div>
+</section>
+
+<hr/>
+
+<section id="session">
+    <h2>Session</h2>
+    <button id="whoami-btn">Get Current User</button>
+    <button id="logout-btn">Logout</button>
+    <pre id="whoami-result"></pre>
+</section>
+
+<script>
+    const API_BASE = 'http://localhost:8080';
+
+    async function register() {
+        const name = document.getElementById('reg-name').value;
+        const email = document.getElementById('reg-email').value;
+        const pass = document.getElementById('reg-pass').value;
+        const out = document.getElementById('reg-result');
+
+        try {
+            const res = await fetch(API_BASE + '/auth/register', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, email, pass})
+            });
+
+            if (res.ok) {
+                const json = await res.json();
+                out.textContent = 'Registered: ' + JSON.stringify(json);
+            } else {
+                const text = await res.text();
+                out.textContent = 'Error ' + res.status + ': ' + text;
+            }
+        } catch (e) {
+            out.textContent = 'Network/error: ' + e;
+        }
+    }
+
+    async function login() {
+        const email = document.getElementById('login-email').value;
+        const pass = document.getElementById('login-pass').value;
+        const out = document.getElementById('login-result');
+
+        try {
+            const res = await fetch(API_BASE + '/auth/login', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email, pass})
+            });
+
+            if (res.ok) {
+                const json = await res.json();
+                out.textContent = 'Logged in: ' + JSON.stringify(json);
+            } else {
+                const text = await res.text();
+                out.textContent = 'Error ' + res.status + ': ' + text;
+            }
+        } catch (e) {
+            out.textContent = 'Network/error: ' + e;
+        }
+    }
+
+    async function whoami() {
+        const out = document.getElementById('whoami-result');
+        try {
+            const res = await fetch(API_BASE + '/auth/user', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            if (res.ok) {
+                const json = await res.json();
+                out.textContent = JSON.stringify(json, null, 2);
+            } else if (res.status === 401) {
+                out.textContent = 'Not logged in (401)';
+            } else {
+                out.textContent = 'Error: ' + res.status;
+            }
+        } catch (e) {
+            out.textContent = 'Network/error: ' + e;
+        }
+    }
+
+    async function logout() {
+        try {
+            const res = await fetch(API_BASE + '/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            if (res.status === 204) {
+                alert('Logged out');
+            } else {
+                alert('Logout returned: ' + res.status);
+            }
+        } catch (e) {
+            alert('Network/error: ' + e);
+        }
+    }
+
+    document.getElementById('reg-btn').addEventListener('click', register);
+    document.getElementById('login-btn').addEventListener('click', login);
+    document.getElementById('whoami-btn').addEventListener('click', whoami);
+    document.getElementById('logout-btn').addEventListener('click', logout);
+</script>
+</body>
+</html>

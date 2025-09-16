@@ -1,0 +1,230 @@
+<!-- Save as notes.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Notes Test UI</title>
+</head>
+<body>
+<h1>Notes Test UI</h1>
+
+<section>
+  <h2>Create Note</h2>
+  <label>Title: <input id="note-title" /></label><br/>
+  <label>Body: <br/><textarea id="note-body" rows="6" cols="60"></textarea></label><br/>
+  <button id="create-note-btn">Create</button>
+  <div id="create-result"></div>
+</section>
+
+<hr/>
+
+<section>
+  <h2>All Notes</h2>
+  <button id="refresh-notes-btn">Refresh List</button>
+  <div id="notes-list"></div>
+</section>
+
+<hr/>
+
+<section>
+  <h2>Get / Update / Delete Single Note</h2>
+  <label>Note ID: <input id="single-id" style="width:80px" /></label>
+  <button id="get-note-btn">Get</button>
+  <button id="update-note-btn">Update (prompt)</button>
+  <button id="delete-note-btn">Delete</button>
+  <pre id="single-note-result"></pre>
+</section>
+
+<script>
+  const API_BASE = 'http://localhost:8080';
+
+  // Helper for JSON responses
+  async function tryJson(res) {
+    const text = await res.text();
+    try { return JSON.parse(text); } catch(e) { return text; }
+  }
+
+  // Create note
+  async function createNote() {
+    const title = document.getElementById('note-title').value;
+    const body = document.getElementById('note-body').value;
+    const out = document.getElementById('create-result');
+
+    try {
+      const res = await fetch(API_BASE + '/notes', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({title, body})
+      });
+
+      if (res.status === 201) {
+        const json = await res.json();
+        out.textContent = 'Created: ' + JSON.stringify(json);
+        refreshNotes();
+      } else {
+        const err = await tryJson(res);
+        out.textContent = 'Error ' + res.status + ': ' + JSON.stringify(err);
+      }
+    } catch (e) {
+      out.textContent = 'Network/error: ' + e;
+    }
+  }
+
+  // Refresh list
+  async function refreshNotes() {
+    const container = document.getElementById('notes-list');
+    container.textContent = 'Loading...';
+    try {
+      const res = await fetch(API_BASE + '/notes', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const list = await res.json();
+        if (!Array.isArray(list) || list.length === 0) {
+          container.textContent = 'No notes';
+          return;
+        }
+        // Build list
+        container.innerHTML = '';
+        const ul = document.createElement('ul');
+        list.forEach(n => {
+          const li = document.createElement('li');
+          // show basic info & actions
+          li.textContent = `#${n.id} — ${n.title} (created: ${n.createdDate})`;
+          // view button
+          const viewBtn = document.createElement('button');
+          viewBtn.textContent = 'View';
+          viewBtn.addEventListener('click', () => getOneNoteAndShow(n.id));
+          li.appendChild(document.createTextNode(' '));
+          li.appendChild(viewBtn);
+
+          // quick edit button (prompt)
+          const editBtn = document.createElement('button');
+          editBtn.textContent = 'Quick Edit';
+          editBtn.addEventListener('click', async () => {
+            const newTitle = prompt('New title', n.title);
+            const newBody = prompt('New body', n.body || '');
+            if (newTitle !== null && newBody !== null) {
+              await updateNoteById(n.id, newTitle, newBody);
+              await refreshNotes();
+            }
+          });
+          li.appendChild(document.createTextNode(' '));
+          li.appendChild(editBtn);
+
+          // delete button
+          const delBtn = document.createElement('button');
+          delBtn.textContent = 'Delete';
+          delBtn.addEventListener('click', async () => {
+            if (confirm('Delete note #' + n.id + '?')) {
+              await deleteNoteById(n.id);
+              await refreshNotes();
+            }
+          });
+          li.appendChild(document.createTextNode(' '));
+          li.appendChild(delBtn);
+
+          ul.appendChild(li);
+        });
+        container.appendChild(ul);
+      } else {
+        container.textContent = 'Error ' + res.status;
+      }
+    } catch (e) {
+      container.textContent = 'Network/error: ' + e;
+    }
+  }
+
+  // Get one note (by input id)
+  async function getOneNoteFromInput() {
+    const id = document.getElementById('single-id').value;
+    if (!id) { alert('Enter id'); return; }
+    await getOneNoteAndShow(id);
+  }
+
+  async function getOneNoteAndShow(id) {
+    const out = document.getElementById('single-note-result');
+    out.textContent = 'Loading...';
+    try {
+      const res = await fetch(API_BASE + '/notes/' + encodeURIComponent(id), {
+        method: 'GET',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const json = await res.json();
+        out.textContent = JSON.stringify(json, null, 2);
+      } else {
+        const err = await tryJson(res);
+        out.textContent = 'Error ' + res.status + ': ' + JSON.stringify(err);
+      }
+    } catch (e) {
+      out.textContent = 'Network/error: ' + e;
+    }
+  }
+
+  async function updateNoteById(id, title, body) {
+    try {
+      const res = await fetch(API_BASE + '/notes/' + encodeURIComponent(id), {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({title, body})
+      });
+      if (res.ok) {
+        alert('Updated');
+      } else {
+        const err = await tryJson(res);
+        alert('Error ' + res.status + ': ' + JSON.stringify(err));
+      }
+    } catch (e) {
+      alert('Network/error: ' + e);
+    }
+  }
+
+  async function deleteNoteById(id) {
+    try {
+      const res = await fetch(API_BASE + '/notes/' + encodeURIComponent(id), {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (res.status === 204) {
+        alert('Deleted');
+      } else {
+        const err = await tryJson(res);
+        alert('Error ' + res.status + ': ' + JSON.stringify(err));
+      }
+    } catch (e) {
+      alert('Network/error: ' + e);
+    }
+  }
+
+  // Attach UI
+  document.getElementById('create-note-btn').addEventListener('click', createNote);
+  document.getElementById('refresh-notes-btn').addEventListener('click', refreshNotes);
+  document.getElementById('get-note-btn').addEventListener('click', getOneNoteFromInput);
+  document.getElementById('update-note-btn').addEventListener('click', async () => {
+    const id = document.getElementById('single-id').value;
+    if (!id) { alert('Enter id'); return; }
+    const newTitle = prompt('New title');
+    const newBody = prompt('New body');
+    if (newTitle !== null && newBody !== null) {
+      await updateNoteById(id, newTitle, newBody);
+      await refreshNotes();
+    }
+  });
+  document.getElementById('delete-note-btn').addEventListener('click', async () => {
+    const id = document.getElementById('single-id').value;
+    if (!id) { alert('Enter id'); return; }
+    if (confirm('Delete note #' + id + '?')) {
+      await deleteNoteById(id);
+      await refreshNotes();
+    }
+  });
+
+  // Auto-refresh on load
+  refreshNotes();
+</script>
+</body>
+</html>
