@@ -23,14 +23,14 @@ public class NoteController {
 
     @GetMapping("/note")
     public String noteHome( Model model){
-        model.addAttribute("allNotes", this.noteRepo.findAllByUserId((User) session.getAttribute("currentUser")));
+        model.addAttribute("allNotes", noteService.getAllNotes((User) session.getAttribute("currentUser")));
         return "noteHome";
     }
 
     @PostMapping("/note")
     public String createNote(@RequestParam("body") String body, @RequestParam("title") String title, Model model){
         model.addAttribute("updateMethod", "create");
-        noteService.createNote(title, body);
+        noteService.createNote(title, body, (User) session.getAttribute("currentUser"));
         return "redirect:/note";
     }
 
@@ -48,7 +48,7 @@ public class NoteController {
         return "noteModify";
     }
 
-    @PostMapping("/noteModify")
+    @PostMapping("/noteModify") //Update
     public String noteModifyUpdate(@RequestParam("title") String title, @RequestParam("body") String body, @RequestParam Integer noteId, Model model) {
         noteService.modifyNote(title, body, (User) session.getAttribute("currentUser"), noteId);
         return "redirect:/note";

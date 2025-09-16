@@ -1,6 +1,7 @@
 package org.shubham.notesapp.loginstuff;
 
 
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 @RequestMapping("/")
 public class LoginController {
+
     LoginService loginService;
     HttpSession session;
 
@@ -44,7 +46,12 @@ public class LoginController {
 
     @PostMapping("/login")
     public String login(@RequestParam("email") String email, @RequestParam("pass") String pass, RedirectAttributes redirectAttributes){
-        loginService.login(redirectAttributes, email, pass);
+        User user = loginService.login(redirectAttributes, email, pass);
+
+        if(user == null){
+            return "redirect:/login";
+        }
+        session.setAttribute("currentUser", user);
         return "redirect:/note";
     }
 }

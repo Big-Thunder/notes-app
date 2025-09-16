@@ -2,6 +2,7 @@ package org.shubham.notesapp.notestuff;
 
 import jakarta.persistence.*;
 import org.shubham.notesapp.loginstuff.User;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Date;
 
@@ -13,7 +14,7 @@ public class Note {
 
     @ManyToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id")
-    private User userId;
+    private User user;
 
     private String title;
     private Date createdDate;
@@ -28,12 +29,12 @@ public class Note {
         this.noteId = noteId;
     }
 
-    public User getUserId() {
-        return userId;
+    public User getUser() {
+        return user;
     }
 
-    public void setUserId(User userId) {
-        this.userId = userId;
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public String getTitle() {
